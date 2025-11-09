@@ -5,6 +5,8 @@ use crossterm::{
 };
 use std::io::{stdout, Write};
 
+use super::ansi;
+
 pub struct TerminalManager {
     width: u16,
     height: u16,
@@ -67,14 +69,14 @@ impl TerminalManager {
 
     pub fn print_centered(&self, text: &str) -> Result<()> {
         let lines: Vec<&str> = text.lines().collect();
-        let max_width = lines.iter().map(|l| l.len()).max().unwrap_or(0) as u16;
+        let max_width = lines.iter().map(|l| ansi::visual_width(l)).max().unwrap_or(0) as u16;
         let height = lines.len() as u16;
 
         let start_x = (self.width.saturating_sub(max_width)) / 2;
         let start_y = (self.height.saturating_sub(height)) / 2;
 
         for (i, line) in lines.iter().enumerate() {
-            let line_width = line.len() as u16;
+            let line_width = ansi::visual_width(line) as u16;
             let x = start_x + (max_width.saturating_sub(line_width)) / 2;
             let y = start_y + i as u16;
             self.print_at(x, y, line)?;
