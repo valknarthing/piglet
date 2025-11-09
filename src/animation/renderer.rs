@@ -2,7 +2,7 @@ use crate::animation::{easing::EasingFunction, effects::Effect, timeline::Timeli
 use crate::color::{apply, ColorEngine};
 use crate::utils::{ansi, ascii::AsciiArt, terminal::TerminalManager};
 use anyhow::Result;
-use crossterm::event::{self, Event, KeyCode};
+use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -36,28 +36,29 @@ impl<'a> Renderer<'a> {
         let mut timeline = Timeline::new(self.timeline.duration_ms(), self.timeline.fps());
         timeline.start();
 
-        // Setup Ctrl+C handler using a channel
-        let (tx, mut rx) = tokio::sync::mpsc::channel::<()>(1);
-        tokio::spawn(async move {
-            let _ = tokio::signal::ctrl_c().await;
-            let _ = tx.send(()).await;
-        });
+        // Setup Ctrl+C handler
+        let mut sigint = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())?;
 
         loop {
             let frame_start = std::time::Instant::now();
 
-            // Check for keyboard input (q or ESC to exit)
+            // Check for keyboard input (Ctrl+C, q, or ESC to exit)
             if event::poll(Duration::from_millis(0))? {
                 if let Event::Key(key) = event::read()? {
-                    if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
-                        break;
+                    match key.code {
+                        KeyCode::Char('q') | KeyCode::Esc => break,
+                        KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => break,
+                        _ => {}
                     }
                 }
             }
 
-            // Check for Ctrl+C signal
-            if rx.try_recv().is_ok() {
-                break;
+            // Also check for SIGINT
+            tokio::select! {
+                _ = sigint.recv() => {
+                    break;
+                }
+                _ = tokio::time::sleep(Duration::from_millis(0)) => {}
             }
 
             // Calculate progress with easing
