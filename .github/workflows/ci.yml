@@ -78,9 +78,7 @@ jobs:
 
       - name: Install figlet (Windows)
         if: matrix.os == 'windows-latest'
-        run: |
-          choco install figlet -y
-          echo "C:\ProgramData\chocolatey\lib\figlet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        run: winget install --id GnuWin32.Figlet -e --accept-source-agreements --accept-package-agreements
 
       - name: Cache cargo registry
         uses: actions/cache@v3
