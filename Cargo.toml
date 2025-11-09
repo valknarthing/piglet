@@ -16,13 +16,13 @@ csscolorparser = "0.6"
 palette = "0.7"
 
 # Animation & Interpolation
-scirs2-interpolate = "0.1"
+# scirs2-interpolate = "0.1.0-rc.2"  # Not needed, using custom easing functions
 
 # Terminal manipulation
 crossterm = "0.27"
 
 # Async runtime (for timing)
-tokio = { version = "1.35", features = ["time", "rt"] }
+tokio = { version = "1.35", features = ["time", "rt-multi-thread", "macros"] }
 
 # Process execution
 which = "5.0"

@@ -1,2 +1,2 @@
-pub mod terminal;
 pub mod ascii;
+pub mod terminal;

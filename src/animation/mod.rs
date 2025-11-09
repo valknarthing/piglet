@@ -1,7 +1,7 @@
-pub mod effects;
 pub mod easing;
-pub mod timeline;
+pub mod effects;
 pub mod renderer;
+pub mod timeline;
 
 use crate::color::ColorEngine;
 use crate::utils::{ascii::AsciiArt, terminal::TerminalManager};
@@ -27,22 +27,22 @@ impl AnimationEngine {
             color_engine: ColorEngine::new(),
         }
     }
-    
+
     pub fn with_effect(mut self, effect_name: &str) -> Result<Self> {
         self.effect = effects::get_effect(effect_name)?;
         Ok(self)
     }
-    
+
     pub fn with_easing(mut self, easing_name: &str) -> Result<Self> {
         self.easing = easing::get_easing_function(easing_name)?;
         Ok(self)
     }
-    
+
     pub fn with_color_engine(mut self, color_engine: ColorEngine) -> Self {
         self.color_engine = color_engine;
         self
     }
-    
+
     pub async fn run(&self, terminal: &mut TerminalManager) -> Result<()> {
         let renderer = renderer::Renderer::new(
             &self.ascii_art,
@@ -52,7 +52,7 @@ impl AnimationEngine {
             &*self.easing,
             &self.color_engine,
         );
-        
+
         renderer.render(terminal).await
     }
 }

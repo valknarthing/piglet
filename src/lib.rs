@@ -1,7 +1,7 @@
-pub mod cli;
-pub mod figlet;
-pub mod color;
 pub mod animation;
+pub mod cli;
+pub mod color;
+pub mod figlet;
 pub mod parser;
 pub mod utils;
 
