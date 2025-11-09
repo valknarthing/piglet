@@ -151,11 +151,14 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: strip target/${{ matrix.target }}/release/piglet
 
+      - name: Rename binary
+        run: |
+          cp target/${{ matrix.target }}/release/piglet piglet-${{ matrix.target }}
+
       - name: Upload release binary
         uses: softprops/action-gh-release@v1
         with:
-          files: target/${{ matrix.target }}/release/piglet
-          name: piglet-${{ matrix.target }}
+          files: piglet-${{ matrix.target }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
