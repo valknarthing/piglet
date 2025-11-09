@@ -33,7 +33,7 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    pub async fn render(&self, terminal: &mut TerminalManager) -> Result<()> {
+    pub async fn render(&self, terminal: &mut TerminalManager) -> Result<bool> {
         let mut timeline = Timeline::new(self.timeline.duration_ms(), self.timeline.fps());
         timeline.start();
 
@@ -67,7 +67,7 @@ impl<'a> Renderer<'a> {
         loop {
             // Check for exit FIRST
             if should_exit.load(Ordering::Relaxed) {
-                break;
+                return Ok(true); // User requested exit
             }
 
             let frame_start = std::time::Instant::now();
@@ -78,7 +78,7 @@ impl<'a> Renderer<'a> {
 
             // Check again before rendering
             if should_exit.load(Ordering::Relaxed) {
-                break;
+                return Ok(true); // User requested exit
             }
 
             // Apply effect
@@ -93,7 +93,7 @@ impl<'a> Renderer<'a> {
 
             // Check before terminal operations
             if should_exit.load(Ordering::Relaxed) {
-                break;
+                return Ok(true); // User requested exit
             }
 
             // Render to terminal
@@ -129,12 +129,12 @@ impl<'a> Renderer<'a> {
 
             // Check if user wants to exit
             if should_exit.load(Ordering::Relaxed) {
-                break;
+                return Ok(true); // User requested exit
             }
 
             // Check if animation is complete before advancing
             if timeline.is_complete() {
-                break;
+                return Ok(false); // Animation completed naturally
             }
 
             // Advance to next frame and wait
@@ -150,7 +150,7 @@ impl<'a> Renderer<'a> {
 
                 while remaining > Duration::ZERO {
                     if should_exit.load(Ordering::Relaxed) {
-                        break;
+                        return Ok(true); // User requested exit during sleep
                     }
                     let sleep_time = remaining.min(chunk_duration);
                     sleep(sleep_time).await;
@@ -158,8 +158,6 @@ impl<'a> Renderer<'a> {
                 }
             }
         }
-
-        Ok(())
     }
 
     fn apply_colors(&self, text: &str, progress: f64) -> String {

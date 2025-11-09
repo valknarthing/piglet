@@ -43,7 +43,7 @@ impl AnimationEngine {
         self
     }
 
-    pub async fn run(&self, terminal: &mut TerminalManager) -> Result<()> {
+    pub async fn run(&self, terminal: &mut TerminalManager) -> Result<bool> {
         let renderer = renderer::Renderer::new(
             &self.ascii_art,
             self.duration_ms,

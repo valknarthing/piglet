@@ -61,8 +61,14 @@ async fn run_piglet(args: PigletCli) -> Result<()> {
 
     // Run animation
     loop {
-        animation_engine.run(&mut terminal).await?;
+        let user_exited = animation_engine.run(&mut terminal).await?;
 
+        // If user pressed exit key, stop looping
+        if user_exited {
+            break;
+        }
+
+        // If not looping, stop after one animation
         if !args.loop_animation {
             break;
         }
