@@ -62,7 +62,11 @@ impl<'a> Renderer<'a> {
                 let (width, height) = terminal.get_size();
                 let lines: Vec<&str> = colored_text.lines().collect();
                 let text_height = lines.len() as i32;
-                let text_width = lines.iter().map(|l| ansi::visual_width(l)).max().unwrap_or(0) as i32;
+                let text_width = lines
+                    .iter()
+                    .map(|l| ansi::visual_width(l))
+                    .max()
+                    .unwrap_or(0) as i32;
 
                 let base_x = (width as i32 - text_width) / 2;
                 let base_y = (height as i32 - text_height) / 2;

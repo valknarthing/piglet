@@ -69,7 +69,11 @@ impl TerminalManager {
 
     pub fn print_centered(&self, text: &str) -> Result<()> {
         let lines: Vec<&str> = text.lines().collect();
-        let max_width = lines.iter().map(|l| ansi::visual_width(l)).max().unwrap_or(0) as u16;
+        let max_width = lines
+            .iter()
+            .map(|l| ansi::visual_width(l))
+            .max()
+            .unwrap_or(0) as u16;
         let height = lines.len() as u16;
 
         let start_x = (self.width.saturating_sub(max_width)) / 2;
