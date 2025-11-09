@@ -589,6 +589,219 @@ impl Effect for RollOut {
     }
 }
 
+// Phase 2: Specialty & Combination Effects
+
+// Puff-in effect - scale up from tiny with fade in
+pub struct PuffIn;
+impl Effect for PuffIn {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Start very small and expand while fading in
+        let scale = 0.1 + (progress * 0.9);
+        let opacity = progress;
+        let scaled = ascii_art.scale(scale);
+        EffectResult::new(scaled.render())
+            .with_scale(scale)
+            .with_opacity(opacity)
+    }
+
+    fn name(&self) -> &str {
+        "puff-in"
+    }
+}
+
+// Puff-out effect - scale down to tiny with fade out
+pub struct PuffOut;
+impl Effect for PuffOut {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Shrink down while fading out
+        let scale = 1.0 - (progress * 0.9);
+        let opacity = 1.0 - progress;
+        let scaled = ascii_art.scale(scale.max(0.1));
+        EffectResult::new(scaled.render())
+            .with_scale(scale)
+            .with_opacity(opacity)
+    }
+
+    fn name(&self) -> &str {
+        "puff-out"
+    }
+}
+
+// Slide-rotate horizontal - slide from left with rotation
+pub struct SlideRotateHor;
+impl Effect for SlideRotateHor {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Slide in from left while rotating
+        let offset_x = ((1.0 - progress) * -(ascii_art.width() as f64 + 10.0)) as i32;
+        let rotation_progress = 1.0 - progress;
+        let offset_y =
+            (rotation_progress * 10.0 * (rotation_progress * std::f64::consts::PI).sin()) as i32;
+        EffectResult::new(ascii_art.render()).with_offset(offset_x, offset_y)
+    }
+
+    fn name(&self) -> &str {
+        "slide-rotate-hor"
+    }
+}
+
+// Slide-rotate vertical - slide from top with rotation
+pub struct SlideRotateVer;
+impl Effect for SlideRotateVer {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Slide in from top while rotating
+        let offset_y = ((1.0 - progress) * -(ascii_art.height() as f64 + 5.0)) as i32;
+        let rotation_progress = 1.0 - progress;
+        let offset_x =
+            (rotation_progress * 15.0 * (rotation_progress * std::f64::consts::PI).cos()) as i32;
+        EffectResult::new(ascii_art.render()).with_offset(offset_x, offset_y)
+    }
+
+    fn name(&self) -> &str {
+        "slide-rotate-ver"
+    }
+}
+
+// Flicker effect - random flickering opacity
+pub struct Flicker;
+impl Effect for Flicker {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Fast flickering that stabilizes
+        let flicker_speed = 30.0;
+        let stability = progress; // Gets more stable over time
+        let flicker = ((progress * flicker_speed).sin() + 1.0) / 2.0;
+        let opacity = stability + (1.0 - stability) * flicker;
+        EffectResult::new(ascii_art.render()).with_opacity(opacity)
+    }
+
+    fn name(&self) -> &str {
+        "flicker"
+    }
+}
+
+// Tracking-in effect - letters expand from center
+pub struct TrackingIn;
+impl Effect for TrackingIn {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Simulate letter spacing by adding spaces between characters
+        let spacing = ((1.0 - progress) * 3.0) as usize;
+        if spacing == 0 {
+            EffectResult::new(ascii_art.render())
+        } else {
+            let lines: Vec<String> = ascii_art
+                .get_lines()
+                .iter()
+                .map(|line| {
+                    line.chars()
+                        .map(|c| {
+                            if c == ' ' {
+                                " ".repeat(spacing + 1)
+                            } else {
+                                format!("{}{}", c, " ".repeat(spacing))
+                            }
+                        })
+                        .collect::<String>()
+                })
+                .collect();
+            EffectResult::new(lines.join("\n"))
+        }
+    }
+
+    fn name(&self) -> &str {
+        "tracking-in"
+    }
+}
+
+// Tracking-out effect - letters contract to center
+pub struct TrackingOut;
+impl Effect for TrackingOut {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Simulate letter spacing by adding spaces between characters
+        let spacing = (progress * 3.0) as usize;
+        if spacing == 0 {
+            EffectResult::new(ascii_art.render())
+        } else {
+            let lines: Vec<String> = ascii_art
+                .get_lines()
+                .iter()
+                .map(|line| {
+                    line.chars()
+                        .map(|c| {
+                            if c == ' ' {
+                                " ".repeat(spacing + 1)
+                            } else {
+                                format!("{}{}", c, " ".repeat(spacing))
+                            }
+                        })
+                        .collect::<String>()
+                })
+                .collect();
+            EffectResult::new(lines.join("\n"))
+        }
+    }
+
+    fn name(&self) -> &str {
+        "tracking-out"
+    }
+}
+
+// Bounce-top effect - bounce down from top
+pub struct BounceTop;
+impl Effect for BounceTop {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Bounce from top with easing
+        let bounces = 2.0;
+        let bounce_height = ascii_art.height() as f64 + 10.0;
+        let base_offset = (1.0 - progress) * bounce_height;
+        let bounce_factor =
+            (progress * bounces * std::f64::consts::PI).sin().abs() * (1.0 - progress);
+        let offset_y = -(base_offset + bounce_factor * 5.0) as i32;
+        EffectResult::new(ascii_art.render()).with_offset(0, offset_y)
+    }
+
+    fn name(&self) -> &str {
+        "bounce-top"
+    }
+}
+
+// Bounce-bottom effect - bounce up from bottom
+pub struct BounceBottom;
+impl Effect for BounceBottom {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Bounce from bottom with easing
+        let bounces = 2.0;
+        let bounce_height = ascii_art.height() as f64 + 10.0;
+        let base_offset = (1.0 - progress) * bounce_height;
+        let bounce_factor =
+            (progress * bounces * std::f64::consts::PI).sin().abs() * (1.0 - progress);
+        let offset_y = (base_offset + bounce_factor * 5.0) as i32;
+        EffectResult::new(ascii_art.render()).with_offset(0, offset_y)
+    }
+
+    fn name(&self) -> &str {
+        "bounce-bottom"
+    }
+}
+
+// Tilt-in effect - tilt in with perspective simulation
+pub struct TiltIn;
+impl Effect for TiltIn {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Simulate tilting in with combined scale and offset
+        let tilt_progress = 1.0 - progress;
+        let scale = 0.5 + (progress * 0.5);
+        let offset_x = (tilt_progress * 20.0 * (tilt_progress * std::f64::consts::PI).sin()) as i32;
+        let offset_y = -(tilt_progress * 15.0) as i32;
+        let scaled = ascii_art.scale(scale);
+        EffectResult::new(scaled.render())
+            .with_scale(scale)
+            .with_offset(offset_x, offset_y)
+    }
+
+    fn name(&self) -> &str {
+        "tilt-in"
+    }
+}
+
 /// Get effect by name
 pub fn get_effect(name: &str) -> Result<Box<dyn Effect>> {
     match name {
@@ -623,6 +836,16 @@ pub fn get_effect(name: &str) -> Result<Box<dyn Effect>> {
         "sway" => Ok(Box::new(Sway)),
         "roll-in" => Ok(Box::new(RollIn)),
         "roll-out" => Ok(Box::new(RollOut)),
+        "puff-in" => Ok(Box::new(PuffIn)),
+        "puff-out" => Ok(Box::new(PuffOut)),
+        "slide-rotate-hor" => Ok(Box::new(SlideRotateHor)),
+        "slide-rotate-ver" => Ok(Box::new(SlideRotateVer)),
+        "flicker" => Ok(Box::new(Flicker)),
+        "tracking-in" => Ok(Box::new(TrackingIn)),
+        "tracking-out" => Ok(Box::new(TrackingOut)),
+        "bounce-top" => Ok(Box::new(BounceTop)),
+        "bounce-bottom" => Ok(Box::new(BounceBottom)),
+        "tilt-in" => Ok(Box::new(TiltIn)),
         _ => bail!("Unknown effect: {}", name),
     }
 }
@@ -662,5 +885,15 @@ pub fn list_effects() -> Vec<&'static str> {
         "sway",
         "roll-in",
         "roll-out",
+        "puff-in",
+        "puff-out",
+        "slide-rotate-hor",
+        "slide-rotate-ver",
+        "flicker",
+        "tracking-in",
+        "tracking-out",
+        "bounce-top",
+        "bounce-bottom",
+        "tilt-in",
     ]
 }
