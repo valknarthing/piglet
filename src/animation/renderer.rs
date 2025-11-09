@@ -36,29 +36,21 @@ impl<'a> Renderer<'a> {
         let mut timeline = Timeline::new(self.timeline.duration_ms(), self.timeline.fps());
         timeline.start();
 
-        // Setup Ctrl+C handler
-        let mut sigint = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())?;
-
         loop {
             let frame_start = std::time::Instant::now();
 
-            // Check for keyboard input (Ctrl+C, q, or ESC to exit)
-            if event::poll(Duration::from_millis(0))? {
-                if let Event::Key(key) = event::read()? {
-                    match key.code {
+            // Check for keyboard input with a small timeout
+            // In raw mode, Ctrl+C comes through as a key event
+            if event::poll(Duration::from_millis(10))? {
+                match event::read()? {
+                    Event::Key(key) => match key.code {
                         KeyCode::Char('q') | KeyCode::Esc => break,
                         KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => break,
+                        KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => break,
                         _ => {}
-                    }
+                    },
+                    _ => {}
                 }
-            }
-
-            // Also check for SIGINT
-            tokio::select! {
-                _ = sigint.recv() => {
-                    break;
-                }
-                _ = tokio::time::sleep(Duration::from_millis(0)) => {}
             }
 
             // Calculate progress with easing
