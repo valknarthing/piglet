@@ -802,6 +802,183 @@ impl Effect for TiltIn {
     }
 }
 
+// Phase 3: Additional Slide, Blink, Focus, and Shadow Effects
+
+// Slide-out-top effect - slide out to top
+pub struct SlideOutTop;
+impl Effect for SlideOutTop {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        let offset_y = -(progress * (ascii_art.height() as f64 + 10.0)) as i32;
+        EffectResult::new(ascii_art.render()).with_offset(0, offset_y)
+    }
+
+    fn name(&self) -> &str {
+        "slide-out-top"
+    }
+}
+
+// Slide-out-bottom effect - slide out to bottom
+pub struct SlideOutBottom;
+impl Effect for SlideOutBottom {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        let offset_y = (progress * (ascii_art.height() as f64 + 10.0)) as i32;
+        EffectResult::new(ascii_art.render()).with_offset(0, offset_y)
+    }
+
+    fn name(&self) -> &str {
+        "slide-out-bottom"
+    }
+}
+
+// Slide-out-left effect - slide out to left
+pub struct SlideOutLeft;
+impl Effect for SlideOutLeft {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        let offset_x = -(progress * (ascii_art.width() as f64 + 10.0)) as i32;
+        EffectResult::new(ascii_art.render()).with_offset(offset_x, 0)
+    }
+
+    fn name(&self) -> &str {
+        "slide-out-left"
+    }
+}
+
+// Slide-out-right effect - slide out to right
+pub struct SlideOutRight;
+impl Effect for SlideOutRight {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        let offset_x = (progress * (ascii_art.width() as f64 + 10.0)) as i32;
+        EffectResult::new(ascii_art.render()).with_offset(offset_x, 0)
+    }
+
+    fn name(&self) -> &str {
+        "slide-out-right"
+    }
+}
+
+// Blink effect - rapid on/off blinking
+pub struct Blink;
+impl Effect for Blink {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Blink 3 times during animation
+        let blinks = 6.0;
+        let blink_state = ((progress * blinks).floor() % 2.0) as i32;
+        let opacity = if blink_state == 0 { 1.0 } else { 0.0 };
+        EffectResult::new(ascii_art.render()).with_opacity(opacity)
+    }
+
+    fn name(&self) -> &str {
+        "blink"
+    }
+}
+
+// Focus-in effect - simulate coming into focus with scale and opacity
+pub struct FocusIn;
+impl Effect for FocusIn {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Start blurry (small scale, low opacity) and come into focus
+        let scale = 0.7 + (progress * 0.3);
+        let opacity = progress.powf(0.5);
+        let scaled = ascii_art.scale(scale);
+        EffectResult::new(scaled.render())
+            .with_scale(scale)
+            .with_opacity(opacity)
+    }
+
+    fn name(&self) -> &str {
+        "focus-in"
+    }
+}
+
+// Blur-out effect - simulate going out of focus
+pub struct BlurOut;
+impl Effect for BlurOut {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Go out of focus (reduce scale, reduce opacity)
+        let scale = 1.0 - (progress * 0.3);
+        let opacity = (1.0 - progress).powf(0.5);
+        let scaled = ascii_art.scale(scale);
+        EffectResult::new(scaled.render())
+            .with_scale(scale)
+            .with_opacity(opacity)
+    }
+
+    fn name(&self) -> &str {
+        "blur-out"
+    }
+}
+
+// Shadow-drop effect - drop down with shadow simulation
+pub struct ShadowDrop;
+impl Effect for ShadowDrop {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Drop down from above with increasing shadow (opacity)
+        let drop_distance = 20.0;
+        let offset_y = -((1.0 - progress) * drop_distance) as i32;
+        let opacity = 0.3 + (progress * 0.7); // Start semi-transparent
+        EffectResult::new(ascii_art.render())
+            .with_offset(0, offset_y)
+            .with_opacity(opacity)
+    }
+
+    fn name(&self) -> &str {
+        "shadow-drop"
+    }
+}
+
+// Shadow-pop effect - pop forward with shadow simulation
+pub struct ShadowPop;
+impl Effect for ShadowPop {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Scale up quickly then settle, simulating popping forward
+        let pop_scale = if progress < 0.5 {
+            1.0 + (progress * 2.0) * 0.3
+        } else {
+            1.3 - ((progress - 0.5) * 2.0) * 0.3
+        };
+        let scaled = ascii_art.scale(pop_scale);
+        EffectResult::new(scaled.render()).with_scale(pop_scale)
+    }
+
+    fn name(&self) -> &str {
+        "shadow-pop"
+    }
+}
+
+// Rotate-center effect - rotate around center point
+pub struct RotateCenter;
+impl Effect for RotateCenter {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Simulate rotation with alternating line offsets
+        let rotations = 1.0;
+        let angle = progress * rotations * std::f64::consts::PI * 2.0;
+        let max_offset = 5.0;
+
+        let lines: Vec<String> = ascii_art
+            .get_lines()
+            .iter()
+            .enumerate()
+            .map(|(i, line)| {
+                let line_factor = (i as f64 / ascii_art.get_lines().len().max(1) as f64) - 0.5;
+                let offset = (angle.sin() * line_factor * max_offset) as i32;
+                if offset > 0 {
+                    format!("{}{}", " ".repeat(offset as usize), line)
+                } else if offset < 0 {
+                    line.chars().skip(offset.unsigned_abs() as usize).collect()
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect();
+
+        EffectResult::new(lines.join("\n"))
+    }
+
+    fn name(&self) -> &str {
+        "rotate-center"
+    }
+}
+
 /// Get effect by name
 pub fn get_effect(name: &str) -> Result<Box<dyn Effect>> {
     match name {
@@ -846,6 +1023,16 @@ pub fn get_effect(name: &str) -> Result<Box<dyn Effect>> {
         "bounce-top" => Ok(Box::new(BounceTop)),
         "bounce-bottom" => Ok(Box::new(BounceBottom)),
         "tilt-in" => Ok(Box::new(TiltIn)),
+        "slide-out-top" => Ok(Box::new(SlideOutTop)),
+        "slide-out-bottom" => Ok(Box::new(SlideOutBottom)),
+        "slide-out-left" => Ok(Box::new(SlideOutLeft)),
+        "slide-out-right" => Ok(Box::new(SlideOutRight)),
+        "blink" => Ok(Box::new(Blink)),
+        "focus-in" => Ok(Box::new(FocusIn)),
+        "blur-out" => Ok(Box::new(BlurOut)),
+        "shadow-drop" => Ok(Box::new(ShadowDrop)),
+        "shadow-pop" => Ok(Box::new(ShadowPop)),
+        "rotate-center" => Ok(Box::new(RotateCenter)),
         _ => bail!("Unknown effect: {}", name),
     }
 }
@@ -895,5 +1082,15 @@ pub fn list_effects() -> Vec<&'static str> {
         "bounce-top",
         "bounce-bottom",
         "tilt-in",
+        "slide-out-top",
+        "slide-out-bottom",
+        "slide-out-left",
+        "slide-out-right",
+        "blink",
+        "focus-in",
+        "blur-out",
+        "shadow-drop",
+        "shadow-pop",
+        "rotate-center",
     ]
 }
