@@ -65,16 +65,21 @@ impl<'a> Renderer<'a> {
         });
 
         loop {
-            let frame_start = std::time::Instant::now();
-
-            // Check if user requested exit
+            // Check for exit FIRST
             if should_exit.load(Ordering::Relaxed) {
                 break;
             }
 
+            let frame_start = std::time::Instant::now();
+
             // Calculate progress with easing
             let linear_progress = timeline.progress();
             let eased_progress = self.easing.ease(linear_progress);
+
+            // Check again before rendering
+            if should_exit.load(Ordering::Relaxed) {
+                break;
+            }
 
             // Apply effect
             let effect_result = self.effect.apply(self.ascii_art, eased_progress);
@@ -85,6 +90,11 @@ impl<'a> Renderer<'a> {
             } else {
                 effect_result.text.clone()
             };
+
+            // Check before terminal operations
+            if should_exit.load(Ordering::Relaxed) {
+                break;
+            }
 
             // Render to terminal
             terminal.clear()?;
@@ -117,6 +127,11 @@ impl<'a> Renderer<'a> {
                 }
             }
 
+            // Check if user wants to exit
+            if should_exit.load(Ordering::Relaxed) {
+                break;
+            }
+
             // Check if animation is complete before advancing
             if timeline.is_complete() {
                 break;
@@ -128,7 +143,19 @@ impl<'a> Renderer<'a> {
             let elapsed = frame_start.elapsed();
 
             if elapsed < frame_duration {
-                sleep(frame_duration - elapsed).await;
+                let sleep_duration = frame_duration - elapsed;
+                // Break sleep into small chunks to check should_exit frequently
+                let chunk_duration = Duration::from_millis(5);
+                let mut remaining = sleep_duration;
+
+                while remaining > Duration::ZERO {
+                    if should_exit.load(Ordering::Relaxed) {
+                        break;
+                    }
+                    let sleep_time = remaining.min(chunk_duration);
+                    sleep(sleep_time).await;
+                    remaining = remaining.saturating_sub(sleep_time);
+                }
             }
         }
 
