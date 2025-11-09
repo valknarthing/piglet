@@ -7,35 +7,166 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
 
 jobs:
   create-release:
     name: Create Release
     runs-on: ubuntu-latest
     outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
       version: ${{ steps.get_version.outputs.version }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Get version from tag
         id: get_version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+          body: |
+            # Piglet v${{ steps.get_version.outputs.version }}
+
+            🐷 Animated and colorful figlet wrapper written in Rust
+
+            ## Features
+
+            - 20+ motion effects (fade, slide, scale, typewriter, wave, rainbow, etc.)
+            - 18+ easing functions (linear, ease-in/out, quad, cubic, elastic, bounce, etc.)
+            - Full color support with gradients and palettes
+            - CSS gradient syntax support
+            - Cross-platform (Linux, macOS)
+
+            ## Installation
+
+            ### Linux (x86_64)
+            ```bash
+            curl -L https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/piglet-x86_64-unknown-linux-gnu -o piglet
+            chmod +x piglet
+            sudo mv piglet /usr/local/bin/
+            ```
+
+            ### Linux (musl)
+            ```bash
+            curl -L https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/piglet-x86_64-unknown-linux-musl -o piglet
+            chmod +x piglet
+            sudo mv piglet /usr/local/bin/
+            ```
+
+            ### macOS (Intel)
+            ```bash
+            curl -L https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/piglet-x86_64-apple-darwin -o piglet
+            chmod +x piglet
+            sudo mv piglet /usr/local/bin/
+            ```
+
+            ### macOS (Apple Silicon)
+            ```bash
+            curl -L https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/piglet-aarch64-apple-darwin -o piglet
+            chmod +x piglet
+            sudo mv piglet /usr/local/bin/
+            ```
+
+            ### Via Cargo
+            ```bash
+            cargo install --git https://github.com/${{ github.repository }} --tag v${{ steps.get_version.outputs.version }}
+            ```
+
+            ## Usage Examples
+
+            ```bash
+            # Simple gradient
+            piglet "Hello" -g "linear-gradient(90deg, red, blue)"
+
+            # Typewriter effect
+            piglet "World" -m typewriter -i ease-out
+
+            # Wave with rainbow colors
+            piglet "Cool!" -p "hotpink,cyan,gold" -m wave
+            ```
+
+            See the [README](https://github.com/${{ github.repository }}/blob/v${{ steps.get_version.outputs.version }}/README.md) for full documentation.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-release:
+    name: Build Release (${{ matrix.target }})
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: |
-            ## Changes in this Release
-            
-            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
-            
-            ## Installation
-            
-            ### Linux (x86_64)
+          targets: ${{ matrix.target }}
+
+      - name: Install musl tools (Linux musl)
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-build-release-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }} --verbose
+
+      - name: Strip binary (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: strip target/${{ matrix.target }}/release/piglet
+
+      - name: Strip binary (macOS)
+        if: matrix.os == 'macos-latest'
+        run: strip target/${{ matrix.target }}/release/piglet
+
+      - name: Upload release binary
+        uses: softprops/action-gh-release@v1
+        with:
+          files: target/${{ matrix.target }}/release/piglet
+          name: piglet-${{ matrix.target }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-crate:
+    name: Publish to crates.io
+    needs: build-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Publish to crates.io
+        run: cargo publish --token ${{ secrets.CARGO_TOKEN }}
+        continue-on-error: true
