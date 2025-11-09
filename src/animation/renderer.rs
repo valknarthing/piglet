@@ -34,7 +34,7 @@ impl<'a> Renderer<'a> {
         let mut timeline = Timeline::new(self.timeline.duration_ms(), self.timeline.fps());
         timeline.start();
 
-        while !timeline.is_complete() {
+        loop {
             let frame_start = std::time::Instant::now();
 
             // Calculate progress with easing
@@ -78,7 +78,12 @@ impl<'a> Renderer<'a> {
                 }
             }
 
-            // Wait for next frame
+            // Check if animation is complete before advancing
+            if timeline.is_complete() {
+                break;
+            }
+
+            // Advance to next frame and wait
             timeline.next_frame();
             let frame_duration = timeline.frame_duration();
             let elapsed = frame_start.elapsed();
