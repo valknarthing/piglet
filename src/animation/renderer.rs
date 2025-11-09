@@ -2,7 +2,8 @@ use crate::animation::{easing::EasingFunction, effects::Effect, timeline::Timeli
 use crate::color::{apply, ColorEngine};
 use crate::utils::{ansi, ascii::AsciiArt, terminal::TerminalManager};
 use anyhow::Result;
-use crossterm::event::{self, Event, KeyCode, KeyModifiers};
+use crossterm::event::{self, Event, KeyCode};
+use std::time::Duration;
 use tokio::time::sleep;
 
 pub struct Renderer<'a> {
@@ -35,19 +36,28 @@ impl<'a> Renderer<'a> {
         let mut timeline = Timeline::new(self.timeline.duration_ms(), self.timeline.fps());
         timeline.start();
 
+        // Setup Ctrl+C handler using a channel
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<()>(1);
+        tokio::spawn(async move {
+            let _ = tokio::signal::ctrl_c().await;
+            let _ = tx.send(()).await;
+        });
+
         loop {
             let frame_start = std::time::Instant::now();
 
-            // Check for Ctrl+C or 'q' to exit
-            if event::poll(std::time::Duration::from_millis(0))? {
+            // Check for keyboard input (q or ESC to exit)
+            if event::poll(Duration::from_millis(0))? {
                 if let Event::Key(key) = event::read()? {
-                    if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
-                        break;
-                    }
                     if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
                         break;
                     }
                 }
+            }
+
+            // Check for Ctrl+C signal
+            if rx.try_recv().is_ok() {
+                break;
             }
 
             // Calculate progress with easing
