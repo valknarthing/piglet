@@ -2,6 +2,7 @@ use crate::animation::{easing::EasingFunction, effects::Effect, timeline::Timeli
 use crate::color::{apply, ColorEngine};
 use crate::utils::{ansi, ascii::AsciiArt, terminal::TerminalManager};
 use anyhow::Result;
+use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use tokio::time::sleep;
 
 pub struct Renderer<'a> {
@@ -36,6 +37,18 @@ impl<'a> Renderer<'a> {
 
         loop {
             let frame_start = std::time::Instant::now();
+
+            // Check for Ctrl+C or 'q' to exit
+            if event::poll(std::time::Duration::from_millis(0))? {
+                if let Event::Key(key) = event::read()? {
+                    if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
+                        break;
+                    }
+                    if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
+                        break;
+                    }
+                }
+            }
 
             // Calculate progress with easing
             let linear_progress = timeline.progress();
