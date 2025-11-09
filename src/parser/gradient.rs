@@ -10,7 +10,8 @@ pub struct ColorStop {
 #[derive(Debug, Clone)]
 pub struct Gradient {
     pub stops: Vec<ColorStop>,
-    #[allow(dead_code)] pub angle: f64,
+    #[allow(dead_code)]
+    pub angle: f64,
 }
 
 impl Gradient {
