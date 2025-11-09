@@ -76,10 +76,6 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: brew install figlet
 
-      - name: Install figlet (Windows)
-        if: matrix.os == 'windows-latest'
-        run: winget install --id GnuWin32.Figlet -e --accept-source-agreements --accept-package-agreements
-
       - name: Cache cargo registry
         uses: actions/cache@v3
         with:
