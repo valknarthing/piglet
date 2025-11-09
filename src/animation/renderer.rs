@@ -3,7 +3,10 @@ use crate::color::{apply, ColorEngine};
 use crate::utils::{ansi, ascii::AsciiArt, terminal::TerminalManager};
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
-use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -41,26 +44,24 @@ impl<'a> Renderer<'a> {
         let should_exit = Arc::new(AtomicBool::new(false));
         let should_exit_clone = should_exit.clone();
 
-        std::thread::spawn(move || {
-            loop {
-                if let Ok(true) = event::poll(Duration::from_millis(100)) {
-                    if let Ok(Event::Key(key)) = event::read() {
-                        match key.code {
-                            KeyCode::Char('q') | KeyCode::Esc => {
-                                should_exit_clone.store(true, Ordering::Relaxed);
-                                break;
-                            }
-                            KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                                should_exit_clone.store(true, Ordering::Relaxed);
-                                break;
-                            }
-                            _ => {}
+        std::thread::spawn(move || loop {
+            if let Ok(true) = event::poll(Duration::from_millis(100)) {
+                if let Ok(Event::Key(key)) = event::read() {
+                    match key.code {
+                        KeyCode::Char('q') | KeyCode::Esc => {
+                            should_exit_clone.store(true, Ordering::Relaxed);
+                            break;
                         }
+                        KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                            should_exit_clone.store(true, Ordering::Relaxed);
+                            break;
+                        }
+                        _ => {}
                     }
                 }
-                if should_exit_clone.load(Ordering::Relaxed) {
-                    break;
-                }
+            }
+            if should_exit_clone.load(Ordering::Relaxed) {
+                break;
             }
         });
 
