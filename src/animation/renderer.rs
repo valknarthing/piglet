@@ -3,6 +3,7 @@ use crate::color::{apply, ColorEngine};
 use crate::utils::{ansi, ascii::AsciiArt, terminal::TerminalManager};
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
+use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -36,21 +37,39 @@ impl<'a> Renderer<'a> {
         let mut timeline = Timeline::new(self.timeline.duration_ms(), self.timeline.fps());
         timeline.start();
 
+        // Spawn background thread to listen for exit keys
+        let should_exit = Arc::new(AtomicBool::new(false));
+        let should_exit_clone = should_exit.clone();
+
+        std::thread::spawn(move || {
+            loop {
+                if let Ok(true) = event::poll(Duration::from_millis(100)) {
+                    if let Ok(Event::Key(key)) = event::read() {
+                        match key.code {
+                            KeyCode::Char('q') | KeyCode::Esc => {
+                                should_exit_clone.store(true, Ordering::Relaxed);
+                                break;
+                            }
+                            KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                                should_exit_clone.store(true, Ordering::Relaxed);
+                                break;
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                if should_exit_clone.load(Ordering::Relaxed) {
+                    break;
+                }
+            }
+        });
+
         loop {
             let frame_start = std::time::Instant::now();
 
-            // Check for keyboard input with a small timeout
-            // In raw mode, Ctrl+C comes through as a key event
-            if event::poll(Duration::from_millis(10))? {
-                match event::read()? {
-                    Event::Key(key) => match key.code {
-                        KeyCode::Char('q') | KeyCode::Esc => break,
-                        KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => break,
-                        KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => break,
-                        _ => {}
-                    },
-                    _ => {}
-                }
+            // Check if user requested exit
+            if should_exit.load(Ordering::Relaxed) {
+                break;
             }
 
             // Calculate progress with easing
