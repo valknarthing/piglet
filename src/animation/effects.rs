@@ -393,6 +393,202 @@ impl Effect for GradientFlow {
     }
 }
 
+// Phase 1: High-Impact Effects from Animista
+
+// Shake effect - horizontal vibration
+pub struct Shake;
+impl Effect for Shake {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Fast oscillation that decreases over time
+        let frequency = 20.0;
+        let amplitude = 10.0 * (1.0 - progress);
+        let offset_x = (progress * frequency * std::f64::consts::PI * 2.0).sin() * amplitude;
+        EffectResult::new(ascii_art.render()).with_offset(offset_x as i32, 0)
+    }
+
+    fn name(&self) -> &str {
+        "shake"
+    }
+}
+
+// Wobble effect - rotation wobble (simulated with offset variations)
+pub struct Wobble;
+impl Effect for Wobble {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Wobble with decreasing amplitude
+        let angle = progress * std::f64::consts::PI * 4.0;
+        let amplitude = 15.0 * (1.0 - progress);
+        let offset_x = (angle.sin() * amplitude) as i32;
+        let offset_y = (angle.cos() * amplitude * 0.3) as i32;
+        EffectResult::new(ascii_art.render()).with_offset(offset_x, offset_y)
+    }
+
+    fn name(&self) -> &str {
+        "wobble"
+    }
+}
+
+// Vibrate effect - rapid small movements
+pub struct Vibrate;
+impl Effect for Vibrate {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Very fast, small vibrations
+        let frequency = 50.0;
+        let amplitude = 3.0;
+        let offset_x = (progress * frequency * std::f64::consts::PI).sin() * amplitude;
+        let offset_y = (progress * frequency * std::f64::consts::PI * 1.3).cos() * amplitude;
+        EffectResult::new(ascii_art.render()).with_offset(offset_x as i32, offset_y as i32)
+    }
+
+    fn name(&self) -> &str {
+        "vibrate"
+    }
+}
+
+// Heartbeat effect - pulsing scale with heartbeat rhythm
+pub struct Heartbeat;
+impl Effect for Heartbeat {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Two-beat pulse pattern like a heartbeat
+        let beat_progress = (progress * 2.0) % 1.0;
+        let scale = if beat_progress < 0.3 {
+            1.0 + (beat_progress / 0.3) * 0.15
+        } else if beat_progress < 0.4 {
+            1.15 - ((beat_progress - 0.3) / 0.1) * 0.15
+        } else if beat_progress < 0.6 {
+            1.0 + ((beat_progress - 0.4) / 0.2) * 0.1
+        } else if beat_progress < 0.7 {
+            1.1 - ((beat_progress - 0.6) / 0.1) * 0.1
+        } else {
+            1.0
+        };
+        let scaled = ascii_art.scale(scale);
+        EffectResult::new(scaled.render()).with_scale(scale)
+    }
+
+    fn name(&self) -> &str {
+        "heartbeat"
+    }
+}
+
+// Flip horizontal - flip text horizontally
+pub struct FlipHorizontal;
+impl Effect for FlipHorizontal {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Scale horizontally from 1 to -1 (flip)
+        let scale = 1.0 - (progress * 2.0);
+        if scale <= 0.0 {
+            // Show reversed text when flipped
+            let lines: Vec<String> = ascii_art
+                .get_lines()
+                .iter()
+                .map(|line| line.chars().rev().collect())
+                .collect();
+            EffectResult::new(lines.join("\n"))
+        } else {
+            let scaled = ascii_art.scale(scale);
+            EffectResult::new(scaled.render()).with_scale(scale)
+        }
+    }
+
+    fn name(&self) -> &str {
+        "flip-horizontal"
+    }
+}
+
+// Flip vertical - flip text vertically
+pub struct FlipVertical;
+impl Effect for FlipVertical {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Scale vertically with midpoint flip
+        let scale = 1.0 - (progress * 2.0).min(1.0);
+        if progress > 0.5 {
+            // Show reversed lines when flipped
+            let mut lines: Vec<String> = ascii_art
+                .get_lines()
+                .iter()
+                .map(|s| s.to_string())
+                .collect();
+            lines.reverse();
+            let result_scale = (progress - 0.5) * 2.0;
+            let scaled = AsciiArt::new(lines.join("\n")).scale(result_scale);
+            EffectResult::new(scaled.render()).with_scale(result_scale)
+        } else {
+            let scaled = ascii_art.scale(scale.max(0.1));
+            EffectResult::new(scaled.render()).with_scale(scale.max(0.1))
+        }
+    }
+
+    fn name(&self) -> &str {
+        "flip-vertical"
+    }
+}
+
+// Swing effect - pendulum motion
+pub struct Swing;
+impl Effect for Swing {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Pendulum swing with decreasing amplitude
+        let swings = 2.0;
+        let angle = (progress * swings * std::f64::consts::PI * 2.0).sin() * (1.0 - progress);
+        let offset_x = (angle * 20.0) as i32;
+        let offset_y = (angle.abs() * 5.0) as i32;
+        EffectResult::new(ascii_art.render()).with_offset(offset_x, -offset_y)
+    }
+
+    fn name(&self) -> &str {
+        "swing"
+    }
+}
+
+// Sway effect - gentle swaying motion
+pub struct Sway;
+impl Effect for Sway {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Smooth, gentle sway
+        let angle = (progress * std::f64::consts::PI * 2.0).sin();
+        let offset_x = (angle * 8.0) as i32;
+        let offset_y = (angle.abs() * 2.0) as i32;
+        EffectResult::new(ascii_art.render()).with_offset(offset_x, offset_y)
+    }
+
+    fn name(&self) -> &str {
+        "sway"
+    }
+}
+
+// Roll-in effect - roll in from left with rotation
+pub struct RollIn;
+impl Effect for RollIn {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Slide in from left while appearing to roll
+        let offset_x = ((1.0 - progress) * -(ascii_art.width() as f64 + 20.0)) as i32;
+        let rotation_effect = ((1.0 - progress) * 5.0) as i32;
+        let offset_y = (rotation_effect as f64 * (progress * std::f64::consts::PI).sin()) as i32;
+        EffectResult::new(ascii_art.render()).with_offset(offset_x, offset_y)
+    }
+
+    fn name(&self) -> &str {
+        "roll-in"
+    }
+}
+
+// Roll-out effect - roll out to right with rotation
+pub struct RollOut;
+impl Effect for RollOut {
+    fn apply(&self, ascii_art: &AsciiArt, progress: f64) -> EffectResult {
+        // Slide out to right while appearing to roll
+        let offset_x = (progress * (ascii_art.width() as f64 + 20.0)) as i32;
+        let rotation_effect = (progress * 5.0) as i32;
+        let offset_y = (rotation_effect as f64 * (progress * std::f64::consts::PI).sin()) as i32;
+        EffectResult::new(ascii_art.render()).with_offset(offset_x, offset_y)
+    }
+
+    fn name(&self) -> &str {
+        "roll-out"
+    }
+}
+
 /// Get effect by name
 pub fn get_effect(name: &str) -> Result<Box<dyn Effect>> {
     match name {
@@ -417,6 +613,16 @@ pub fn get_effect(name: &str) -> Result<Box<dyn Effect>> {
         "gradient-flow" => Ok(Box::new(GradientFlow)),
         "rotate-in" => Ok(Box::new(RotateIn)),
         "rotate-out" => Ok(Box::new(RotateOut)),
+        "shake" => Ok(Box::new(Shake)),
+        "wobble" => Ok(Box::new(Wobble)),
+        "vibrate" => Ok(Box::new(Vibrate)),
+        "heartbeat" => Ok(Box::new(Heartbeat)),
+        "flip-horizontal" => Ok(Box::new(FlipHorizontal)),
+        "flip-vertical" => Ok(Box::new(FlipVertical)),
+        "swing" => Ok(Box::new(Swing)),
+        "sway" => Ok(Box::new(Sway)),
+        "roll-in" => Ok(Box::new(RollIn)),
+        "roll-out" => Ok(Box::new(RollOut)),
         _ => bail!("Unknown effect: {}", name),
     }
 }
@@ -446,5 +652,15 @@ pub fn list_effects() -> Vec<&'static str> {
         "gradient-flow",
         "rotate-in",
         "rotate-out",
+        "shake",
+        "wobble",
+        "vibrate",
+        "heartbeat",
+        "flip-horizontal",
+        "flip-vertical",
+        "swing",
+        "sway",
+        "roll-in",
+        "roll-out",
     ]
 }
