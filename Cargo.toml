@@ -28,7 +28,7 @@ tokio = { version = "1.35", features = ["time", "rt-multi-thread", "macros", "si
 which = "5.0"
 
 # Parsing
-nom = "7.1"
+nom = "8.0"
 regex = "1.10"
 
 # Error handling
