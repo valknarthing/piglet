@@ -19,7 +19,7 @@ palette = "0.7"
 # scirs2-interpolate = "0.1.0-rc.2"  # Not needed, using custom easing functions
 
 # Terminal manipulation
-crossterm = "0.27"
+crossterm = "0.29"
 
 # Async runtime (for timing and signal handling)
 tokio = { version = "1.35", features = ["time", "rt-multi-thread", "macros", "signal", "sync"] }
