@@ -12,7 +12,7 @@ repository = "https://github.com/valknarthing/piglet"
 clap = { version = "4.4", features = ["derive", "cargo"] }
 
 # Color handling
-csscolorparser = "0.6"
+csscolorparser = "0.8"
 palette = "0.7"
 
 # Animation & Interpolation
