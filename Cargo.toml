@@ -36,7 +36,7 @@ anyhow = "1.0"
 thiserror = "1.0"
 
 # Utilities
-itertools = "0.12"
+itertools = "0.14"
 lazy_static = "1.4"
 rand = "0.8"
 
